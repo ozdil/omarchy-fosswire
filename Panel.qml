@@ -320,22 +320,37 @@ Panel {
           width: scroll.width
           spacing: Style.space(10)
 
-          // ---- Header: name, language, refresh.
+          // ---- Header: the site logo and name, then about, language, refresh.
+          // The three buttons share one size and are centred on the same line,
+          // so the language code sits level with the two glyphs.
           Item {
             width: parent.width
             implicitHeight: Math.max(brand.implicitHeight, actions.implicitHeight)
 
-            Text {
+            readonly property real buttonSize: Style.space(30)
+
+            Row {
               id: brand
               anchors.left: parent.left
               anchors.verticalCenter: parent.verticalCenter
-              textFormat: Text.PlainText
-              text: "󰎕  FOSSWIRE"
-              color: Commons.Color.accent
-              font.family: root.fontFamily
-              font.pixelSize: Style.font.title
-              font.bold: true
-              font.letterSpacing: 1
+              spacing: Style.space(10)
+
+              SiteLogo {
+                anchors.verticalCenter: parent.verticalCenter
+                implicitHeight: Math.round(brandName.implicitHeight * 1.15)
+              }
+
+              Text {
+                id: brandName
+                anchors.verticalCenter: parent.verticalCenter
+                textFormat: Text.PlainText
+                text: "FOSSWIRE"
+                color: Commons.Color.accent
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.title
+                font.bold: true
+                font.letterSpacing: 1
+              }
             }
 
             Row {
@@ -345,6 +360,8 @@ Panel {
               spacing: Style.spacing.labelGap
 
               PanelActionButton {
+                anchors.verticalCenter: parent.verticalCenter
+                size: parent.parent.buttonSize
                 iconText: "󰋽"
                 tooltipText: root.tr("about")
                 foreground: root.fg
@@ -353,16 +370,19 @@ Panel {
               }
 
               PanelActionButton {
+                anchors.verticalCenter: parent.verticalCenter
+                size: parent.parent.buttonSize
                 iconText: root.lang.toUpperCase()
                 tooltipText: root.tr("language")
                 foreground: root.fg
                 fontFamily: root.fontFamily
                 fontSize: Style.font.bodySmall
-                size: Style.space(30)
                 onClicked: root.pickingLanguage = !root.pickingLanguage
               }
 
               PanelActionButton {
+                anchors.verticalCenter: parent.verticalCenter
+                size: parent.parent.buttonSize
                 iconText: "󰑐"
                 tooltipText: root.tr("refresh")
                 foreground: root.fg

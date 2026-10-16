@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "org.fosswire.news",
   "name": "FOSSWire",
-  "version": "1.3.1",
+  "version": "1.3.2",
   "author": "Ozan Özdil (ozdil)",
   "license": "MIT",
   "description": "Latest open source and open hardware news from fosswire.org in the top bar, in all 17 site languages.",
