@@ -3,6 +3,7 @@
 // under node).
 
 var SITE = "https://fosswire.org"
+var REPO_URL = "https://github.com/ozdil/omarchy-fosswire"
 
 // Every language of the site's language menu, in the site's order.
 var LANGUAGES = ["en", "tr", "de", "es", "fr", "it", "pt", "ru", "ja", "zh", "ko", "ar", "nl", "pl", "sv", "uk", "hi"]
@@ -18,19 +19,38 @@ function isLanguage(code) {
   return LANGUAGES.indexOf(String(code || "")) !== -1
 }
 
-// "pt-BR", "zh_CN.UTF-8" and "tr" all name a site language by their first
-// two letters; anything else is not one.
+// "pt-BR", "zh_CN.UTF-8", "de_DE@euro" and "tr" all name a site language by
+// the code before the region; "C", "POSIX" and languages the site lacks do not.
 function languageFromLocale(locale) {
-  var code = String(locale || "").toLowerCase().slice(0, 2)
+  var code = String(locale || "").trim().toLowerCase().split(/[_.@-]/)[0]
   return isLanguage(code) ? code : ""
 }
 
+// The PC's language from its locale variables, read the way gettext reads
+// them: LANGUAGE ("de:en", a list in order of preference) first, unless the
+// locale is C or POSIX; then LC_ALL, LC_MESSAGES and LANG. Each list entry
+// that the site lacks is skipped, so "da:de" gives German.
+function systemLanguage(env) {
+  env = env || {}
+  var locale = String(env.LC_ALL || env.LC_MESSAGES || env.LANG || "").trim()
+  var base = locale.split(/[.@]/)[0].toUpperCase()
+  if (base !== "C" && base !== "POSIX") {
+    var wanted = String(env.LANGUAGE || "").split(":")
+    for (var i = 0; i < wanted.length; i++) {
+      var code = languageFromLocale(wanted[i])
+      if (code) return code
+    }
+  }
+  return languageFromLocale(locale)
+}
+
 // The reading language: the one picked in the panel, else the widget's
-// `language` setting, else Omarchy's display language, else English.
-function pickLanguage(saved, setting, shellLanguage) {
+// `language` setting, else a display language chosen in Omarchy, else the
+// PC's own language, else English.
+function pickLanguage(saved, setting, shellLanguage, pcLanguage) {
   if (isLanguage(saved)) return saved
   if (isLanguage(setting)) return setting
-  return languageFromLocale(shellLanguage) || "en"
+  return languageFromLocale(shellLanguage) || languageFromLocale(pcLanguage) || "en"
 }
 
 function isRightToLeft(lang) {

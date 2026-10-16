@@ -24,13 +24,22 @@ Panel {
   readonly property int refreshMinutes: Math.max(5, parseInt(setting("refreshMinutes", 30), 10) || 30)
   property string savedLanguage: ""
   property string seenAt: ""
-  // Omarchy's display language where the shell has the I18n singleton (newer
-  // releases), else the system locale ($LANG, e.g. tr_TR.UTF-8).
+  // A display language set explicitly in Omarchy, where the shell has one.
+  // Not I18n.currentLocale: Omarchy only ships English and Turkish, so it
+  // reports "en" on, say, a German PC.
   readonly property string shellLanguage: {
     var i18n = Commons.I18n
-    return (i18n && (i18n.language || i18n.currentLocale)) || Quickshell.env("LANG") || ""
+    return (i18n && i18n.configuredLocale) || ""
   }
-  readonly property string lang: Model.pickLanguage(savedLanguage, setting("language", "auto"), shellLanguage)
+  // The PC's language from its locale (LANGUAGE, LC_ALL, LC_MESSAGES, LANG),
+  // else Qt's idea of it.
+  readonly property string pcLanguage: Model.systemLanguage({
+    LANGUAGE: Quickshell.env("LANGUAGE"),
+    LC_ALL: Quickshell.env("LC_ALL"),
+    LC_MESSAGES: Quickshell.env("LC_MESSAGES"),
+    LANG: Quickshell.env("LANG")
+  }) || Model.languageFromLocale(Qt.locale().name)
+  readonly property string lang: Model.pickLanguage(savedLanguage, setting("language", "auto"), shellLanguage, pcLanguage)
   readonly property bool rightToLeft: Model.isRightToLeft(lang)
 
   function tr(key) { return Strings.t(root.lang, key) }
@@ -45,6 +54,7 @@ Panel {
 
   property int cursor: -1
   property bool pickingLanguage: false
+  property bool showingAbout: false
 
   // Shown on the bar: the newest headline.
   readonly property string headline: items.length ? items[0].title : ""
@@ -57,6 +67,7 @@ Panel {
 
   function open() {
     root.pickingLanguage = false
+    root.showingAbout = false
     root.cursor = root.items.length ? 0 : -1
     root.controller.show()
     if (root.unseen) {
@@ -67,6 +78,7 @@ Panel {
 
   function close() {
     root.pickingLanguage = false
+    root.showingAbout = false
     root.controller.hide()
   }
 
@@ -245,7 +257,7 @@ Panel {
     open: root.opened
     focusTarget: keyCatcher
     contentWidth: panel.fittedContentWidth(Style.space(460))
-    contentHeight: panel.fittedContentHeight(body.implicitHeight)
+    contentHeight: panel.fittedContentHeight(root.showingAbout ? about.implicitHeight : body.implicitHeight)
 
     PanelKeyCatcher {
       id: keyCatcher
@@ -254,15 +266,18 @@ Panel {
       LayoutMirroring.childrenInherit: true
 
       onCloseRequested: {
-        if (root.pickingLanguage) root.pickingLanguage = false
+        if (root.showingAbout) root.showingAbout = false
+        else if (root.pickingLanguage) root.pickingLanguage = false
         else root.close()
       }
       onTabRequested: function(direction) { root.switchPanel(direction) }
       onMoveRequested: function(dx, dy) {
+        if (root.showingAbout) return
         if (root.pickingLanguage && dx !== 0) root.setLanguage(Model.cycleLanguage(root.lang, dx))
         else if (dy !== 0) root.moveCursor(dy)
       }
       onActivateRequested: {
+        if (root.showingAbout) return
         if (root.pickingLanguage) root.pickingLanguage = false
         else root.openItem(root.cursor)
       }
@@ -270,11 +285,30 @@ Panel {
         if (text === "r") root.refresh()
         else if (text === "o") root.openUrl(Model.homeUrl(root.lang))
         else if (text === "L") root.pickingLanguage = !root.pickingLanguage
+        else if (text === "a") root.showingAbout = !root.showingAbout
+      }
+
+      // ---- About: version, developer, license and support links, read from manifest.json.
+      AboutCard {
+        id: about
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+        visible: root.showingAbout
+        manifestUrl: Qt.resolvedUrl("manifest.json")
+        repoUrl: Model.REPO_URL
+        foreground: root.fg
+        accent: Commons.Color.accent
+        fontFamily: root.fontFamily
+        labels: Strings.table(root.lang)
+        description: root.tr("description")
+        onCloseRequested: root.showingAbout = false
       }
 
       Flickable {
         id: scroll
         anchors.fill: parent
+        visible: !root.showingAbout
         contentWidth: width
         contentHeight: body.implicitHeight
         clip: true
@@ -309,6 +343,14 @@ Panel {
               anchors.right: parent.right
               anchors.verticalCenter: parent.verticalCenter
               spacing: Style.spacing.labelGap
+
+              PanelActionButton {
+                iconText: "󰋽"
+                tooltipText: root.tr("about")
+                foreground: root.fg
+                fontFamily: root.fontFamily
+                onClicked: root.showingAbout = true
+              }
 
               PanelActionButton {
                 iconText: root.lang.toUpperCase()
