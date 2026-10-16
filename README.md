@@ -6,7 +6,7 @@ A native Omarchy shell plugin: it runs inside `omarchy-shell` (Quickshell), draw
 shell's own components and theme tokens, and uses the shell font, which is JetBrains Mono
 Nerd Font unless you changed it with `omarchy font set`. Switching themes recolors it live.
 
-- **Bar:** a compact `FW` mark. It takes the theme's accent color while there are stories
+- **Bar:** the fosswire.org logo, drawn in the bar's own color. It takes the theme's accent color while there are stories
   you have not seen in the panel yet, and hovering shows the newest headline. Left click opens
   the news panel, middle click refreshes, right click opens fosswire.org.
 - **Panel:** the latest headlines with source and time; the highlighted story also shows its
@@ -59,7 +59,7 @@ for example `{ "id": "org.fosswire.news", "showHeadline": false }`:
 | Key | Default | Meaning |
 |-----|---------|---------|
 | `language` | `auto` | A site language code, or `auto` for Omarchy's display language |
-| `icon` | `FW` | The bar mark: any short text or a Nerd Font glyph such as `󰎕` |
+| `icon` | `logo` | `logo` for the fosswire.org mark, or any short text or Nerd Font glyph such as `󰮮` |
 | `showHeadline` | `false` | Also write the newest headline on the bar (never on a vertical bar) |
 | `maxChars` | `42` | Longest headline shown on the bar |
 | `count` | `12` | Headlines in the panel (3 to 30) |

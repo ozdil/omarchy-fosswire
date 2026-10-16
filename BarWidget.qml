@@ -6,7 +6,7 @@ import qs.Ui
 import "Model.js" as Model
 import "Strings.js" as Strings
 
-// Bar entry point: the FW mark, which takes the theme's accent color while
+// Bar entry point: the fosswire.org logo, which takes the theme's accent color while
 // there is news not yet seen in the panel; hovering shows the newest headline.
 // Left click opens the news panel, middle click refreshes, right click opens
 // the site. `showHeadline: true` also writes the headline on the bar.
@@ -21,8 +21,11 @@ BarWidget {
   readonly property int maxChars: Math.max(10, parseInt(setting("maxChars", 42), 10) || 42)
   readonly property string headline: panelLoader.item ? panelLoader.item.headline : ""
   readonly property string lang: panelLoader.item ? panelLoader.item.lang : "en"
-  // The FOSSWire mark; the `icon` setting swaps in any text or Nerd Font glyph.
-  readonly property string mark: String(setting("icon", "FW")) || "FW"
+  // The fosswire.org logo by default; the `icon` setting swaps in any text or
+  // Nerd Font glyph instead.
+  readonly property string mark: String(setting("icon", "logo")) || "logo"
+  readonly property bool useLogo: mark === "logo"
+  readonly property bool headlineShown: showHeadline && headline !== ""
   readonly property bool unseen: panelLoader.item ? panelLoader.item.unseen === true : false
 
   function open() { if (panelLoader.item) panelLoader.item.open() }
@@ -63,12 +66,22 @@ BarWidget {
     id: button
     anchors.fill: parent
     bar: root.bar
-    text: root.showHeadline && root.headline !== ""
-      ? root.mark + "  " + Model.truncate(root.headline, root.maxChars)
-      : root.mark
+    // With the logo, an em space holds its place in the label.
+    text: (root.useLogo ? "\u2003" : root.mark)
+      + (root.headlineShown ? "  " + Model.truncate(root.headline, root.maxChars) : "")
+    labelVisible: !root.useLogo || root.headlineShown
+    fixedWidth: root.useLogo && !root.headlineShown && !root.vertical ? Style.bar.iconSlot : -1
     active: root.unseen
     activeColor: Commons.Color.accent
     tooltipText: root.opened ? "" : (root.headline || Strings.t(root.lang, "tooltip"))
+
+    FossLogo {
+      visible: root.useLogo
+      implicitHeight: Style.bar.iconSize
+      x: root.headlineShown ? button.scaledHorizontalMargin : (button.width - width) / 2
+      anchors.verticalCenter: parent.verticalCenter
+      color: button.active ? button.activeColor : button.foreground
+    }
 
     onPressed: function(b) {
       if (b === Qt.MiddleButton) root.refresh()
