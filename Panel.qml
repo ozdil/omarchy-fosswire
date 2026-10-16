@@ -23,7 +23,13 @@ Panel {
   readonly property int count: Math.max(3, Math.min(30, parseInt(setting("count", 12), 10) || 12))
   readonly property int refreshMinutes: Math.max(5, parseInt(setting("refreshMinutes", 30), 10) || 30)
   property string savedLanguage: ""
-  readonly property string lang: Model.pickLanguage(savedLanguage, setting("language", "auto"), Commons.I18n.language)
+  // Omarchy's display language where the shell has the I18n singleton (newer
+  // releases), else the system locale ($LANG, e.g. tr_TR.UTF-8).
+  readonly property string shellLanguage: {
+    var i18n = Commons.I18n
+    return (i18n && (i18n.language || i18n.currentLocale)) || Quickshell.env("LANG") || ""
+  }
+  readonly property string lang: Model.pickLanguage(savedLanguage, setting("language", "auto"), shellLanguage)
   readonly property bool rightToLeft: Model.isRightToLeft(lang)
 
   function tr(key) { return Strings.t(root.lang, key) }

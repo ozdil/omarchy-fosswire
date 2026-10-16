@@ -12,7 +12,7 @@ Nerd Font unless you changed it with `omarchy font set`. Switching themes recolo
   key takeaway. Enter or click opens the article in your browser.
 - **All 17 site languages:** English, Türkçe, Deutsch, Español, Français, Italiano, Português,
   Русский, 日本語, 中文, 한국어, العربية (right to left), Nederlands, Polski, Svenska,
-  Українська and हिन्दी. By default it follows Omarchy's display language and falls back to
+  Українська and हिन्दी. By default it follows Omarchy's display language (or the system locale) and falls back to
   English. Articles open on the site in the same language.
 
 ## Install
