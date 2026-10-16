@@ -20,6 +20,8 @@ Nerd Font unless you changed it with `omarchy font set`. Switching themes recolo
 
 ## Install
 
+Needs Omarchy 4 (`omarchy-shell`), plus `curl` and `xdg-open` (xdg-utils), which Omarchy ships.
+
 ```sh
 omarchy plugin add https://github.com/ozdil/omarchy-fosswire.git --enable
 ```
@@ -34,7 +36,8 @@ After updating an installed copy, run `omarchy-restart-shell`: the running shell
 panel code until it restarts.
 
 Move it on the bar with `omarchy bar move org.fosswire.news --section left` (or `center`,
-`right`), or drag it. Remove it with `omarchy plugin remove org.fosswire.news`.
+`right`), or drag it. Remove it with `omarchy plugin remove org.fosswire.news`; the only file it leaves is its
+saved language and last-seen story in `~/.local/state/omarchy/settings/fosswire.json`.
 
 ## Keys in the panel
 
