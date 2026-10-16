@@ -23,6 +23,7 @@ Panel {
   readonly property int count: Math.max(3, Math.min(30, parseInt(setting("count", 12), 10) || 12))
   readonly property int refreshMinutes: Math.max(5, parseInt(setting("refreshMinutes", 30), 10) || 30)
   property string savedLanguage: ""
+  property string seenAt: ""
   // Omarchy's display language where the shell has the I18n singleton (newer
   // releases), else the system locale ($LANG, e.g. tr_TR.UTF-8).
   readonly property string shellLanguage: {
@@ -47,6 +48,8 @@ Panel {
 
   // Shown on the bar: the newest headline.
   readonly property string headline: items.length ? items[0].title : ""
+  // Stories newer than the newest one seen in the panel: the bar glyph lights up.
+  readonly property bool unseen: Model.hasUnseen(items, seenAt)
 
   readonly property color fg: root.barForeground
   readonly property color dim: Qt.darker(root.barForeground, 1.4)
@@ -56,6 +59,10 @@ Panel {
     root.pickingLanguage = false
     root.cursor = root.items.length ? 0 : -1
     root.controller.show()
+    if (root.unseen) {
+      root.seenAt = root.items[0].publishedAt
+      root.saveState()
+    }
   }
 
   function close() {
@@ -105,8 +112,12 @@ Panel {
   function setLanguage(lang) {
     if (!Model.isLanguage(lang)) return
     root.savedLanguage = lang
+    root.saveState()
+  }
+
+  function saveState() {
     saveProc.command = ["sh", "-c", "mkdir -p \"$(dirname \"$1\")\" && printf '%s' \"$2\" > \"$1\"", "sh",
-      root.statePath, Model.serializeState(lang)]
+      root.statePath, Model.serializeState(root.savedLanguage, root.seenAt)]
     saveProc.running = true
   }
 
@@ -151,8 +162,15 @@ Panel {
     watchChanges: true
     printErrors: false
     onFileChanged: reload()
-    onLoaded: root.savedLanguage = Model.parseState(text()).language
-    onLoadFailed: root.savedLanguage = ""
+    onLoaded: {
+      var state = Model.parseState(text())
+      root.savedLanguage = state.language
+      root.seenAt = state.seenAt
+    }
+    onLoadFailed: {
+      root.savedLanguage = ""
+      root.seenAt = ""
+    }
   }
 
   Process {

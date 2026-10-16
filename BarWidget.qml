@@ -1,12 +1,15 @@
 import QtQuick
 import Quickshell
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 import "Model.js" as Model
 import "Strings.js" as Strings
 
-// Bar entry point: the newspaper glyph and the newest headline. Left click
-// opens the news panel, middle click refreshes, right click opens the site.
+// Bar entry point: the FW mark, which takes the theme's accent color while
+// there is news not yet seen in the panel; hovering shows the newest headline.
+// Left click opens the news panel, middle click refreshes, right click opens
+// the site. `showHeadline: true` also writes the headline on the bar.
 BarWidget {
   id: root
   moduleName: "org.fosswire.news"
@@ -14,10 +17,13 @@ BarWidget {
   readonly property bool opened: panelLoader.item ? panelLoader.item.opened === true : false
   readonly property bool popoutSwitchClosing: panelLoader.item ? panelLoader.item.popoutSwitchClosing === true : false
 
-  readonly property bool showHeadline: setting("showHeadline", true) !== false && !root.vertical
+  readonly property bool showHeadline: setting("showHeadline", false) === true && !root.vertical
   readonly property int maxChars: Math.max(10, parseInt(setting("maxChars", 42), 10) || 42)
   readonly property string headline: panelLoader.item ? panelLoader.item.headline : ""
   readonly property string lang: panelLoader.item ? panelLoader.item.lang : "en"
+  // The FOSSWire mark; the `icon` setting swaps in any text or Nerd Font glyph.
+  readonly property string mark: String(setting("icon", "FW")) || "FW"
+  readonly property bool unseen: panelLoader.item ? panelLoader.item.unseen === true : false
 
   function open() { if (panelLoader.item) panelLoader.item.open() }
   function close() { if (panelLoader.item) panelLoader.item.close() }
@@ -58,8 +64,10 @@ BarWidget {
     anchors.fill: parent
     bar: root.bar
     text: root.showHeadline && root.headline !== ""
-      ? "󰎕  " + Model.truncate(root.headline, root.maxChars)
-      : "󰎕"
+      ? root.mark + "  " + Model.truncate(root.headline, root.maxChars)
+      : root.mark
+    active: root.unseen
+    activeColor: Commons.Color.accent
     tooltipText: root.opened ? "" : (root.headline || Strings.t(root.lang, "tooltip"))
 
     onPressed: function(b) {

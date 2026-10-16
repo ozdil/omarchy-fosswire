@@ -129,13 +129,25 @@ function cycleLanguage(lang, step) {
   return LANGUAGES[((i + (step || 1)) % n + n) % n]
 }
 
-// The saved choice lives in a small state file next to Omarchy's own
-// widget state (weather.json): {"language": "tr"}.
+// Saved state lives in a small file next to Omarchy's own widget state
+// (weather.json): the language picked in the panel and the publication time
+// of the newest story seen there, which tells the bar whether news is new.
 function parseState(raw) {
   var data = parseObject(raw) || {}
-  return { language: isLanguage(data.language) ? data.language : "" }
+  return {
+    language: isLanguage(data.language) ? data.language : "",
+    seenAt: typeof data.seenAt === "string" ? data.seenAt : ""
+  }
 }
 
-function serializeState(lang) {
-  return JSON.stringify({ language: isLanguage(lang) ? lang : "" }) + "\n"
+function serializeState(lang, seenAt) {
+  return JSON.stringify({ language: isLanguage(lang) ? lang : "", seenAt: String(seenAt || "") }) + "\n"
+}
+
+// True when the newest story came out after the one last seen in the panel.
+// Nothing seen yet counts as new, so a fresh install draws attention once.
+function hasUnseen(items, seenAt) {
+  if (!items || !items.length) return false
+  var newest = Date.parse(items[0].publishedAt || "") || 0
+  return newest > (Date.parse(seenAt || "") || 0)
 }

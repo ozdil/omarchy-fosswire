@@ -6,8 +6,9 @@ A native Omarchy shell plugin: it runs inside `omarchy-shell` (Quickshell), draw
 shell's own components and theme tokens, and uses the shell font, which is JetBrains Mono
 Nerd Font unless you changed it with `omarchy font set`. Switching themes recolors it live.
 
-- **Bar:** a newspaper glyph and the newest headline. Left click opens the news panel,
-  middle click refreshes, right click opens fosswire.org.
+- **Bar:** a compact `FW` mark. It takes the theme's accent color while there are stories
+  you have not seen in the panel yet, and hovering shows the newest headline. Left click opens
+  the news panel, middle click refreshes, right click opens fosswire.org.
 - **Panel:** the latest headlines with source and time; the highlighted story also shows its
   key takeaway. Enter or click opens the article in your browser.
 - **All 17 site languages:** English, Türkçe, Deutsch, Español, Français, Italiano, Português,
@@ -26,6 +27,9 @@ From a checkout of the FOSSWire repository instead:
 ```sh
 integrations/omarchy/install.sh
 ```
+
+After updating an installed copy, run `omarchy-restart-shell`: the running shell keeps the old
+panel code until it restarts.
 
 Move it on the bar with `omarchy bar move org.fosswire.news --section left` (or `center`,
 `right`), or drag it. Remove it with `omarchy plugin remove org.fosswire.news`.
@@ -55,13 +59,14 @@ for example `{ "id": "org.fosswire.news", "showHeadline": false }`:
 | Key | Default | Meaning |
 |-----|---------|---------|
 | `language` | `auto` | A site language code, or `auto` for Omarchy's display language |
-| `showHeadline` | `true` | Show the newest headline next to the glyph (never on a vertical bar) |
+| `icon` | `FW` | The bar mark: any short text or a Nerd Font glyph such as `󰎕` |
+| `showHeadline` | `false` | Also write the newest headline on the bar (never on a vertical bar) |
 | `maxChars` | `42` | Longest headline shown on the bar |
 | `count` | `12` | Headlines in the panel (3 to 30) |
 | `refreshMinutes` | `30` | How often to fetch the news (at least 5) |
 
 A language picked in the panel is saved in `~/.local/state/omarchy/settings/fosswire.json`
-and wins over the `language` setting.
+and wins over the `language` setting. The same file remembers the newest story you have seen.
 
 ## How it works
 
