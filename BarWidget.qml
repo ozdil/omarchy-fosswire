@@ -77,7 +77,8 @@ BarWidget {
 
     FossLogo {
       visible: root.useLogo
-      implicitHeight: Style.bar.iconSize
+      // Matches the glyphs around it: newer shells have iconSize, 4.0.4 only iconFont.
+      implicitHeight: Math.round((Style.bar.iconSize || Style.bar.iconFont || 13) * 0.92)
       x: root.headlineShown ? button.scaledHorizontalMargin : (button.width - width) / 2
       anchors.verticalCenter: parent.verticalCenter
       color: button.active ? button.activeColor : button.foreground
