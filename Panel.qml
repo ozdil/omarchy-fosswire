@@ -46,15 +46,16 @@ Panel {
 
   // ---- Data. The last good copy stays on screen when a refresh fails.
   property var feed: null
-  property var titlesByLang: ({})
-  property var takeawaysByLang: ({})
+  property var securityData: null
   property var items: []
+  property var advisories: []
   property bool loading: false
   property bool failed: false
 
   property int cursor: -1
   property bool pickingLanguage: false
   property bool showingAbout: false
+  property bool showingCve: false
 
   // Shown on the bar: the newest headline.
   readonly property string headline: items.length ? items[0].title : ""
@@ -63,12 +64,13 @@ Panel {
 
   readonly property color fg: root.barForeground
   readonly property color dim: Qt.darker(root.barForeground, 1.4)
-  readonly property string fontFamily: root.bar ? root.bar.fontFamily : Style.font.family
+  readonly property string fontFamily: (root.bar && root.bar.fontFamily) || (Style.font && Style.font.family) || "JetBrainsMono Nerd Font"
 
   function open() {
     root.pickingLanguage = false
     root.showingAbout = false
-    root.cursor = root.items.length ? 0 : -1
+    var activeList = root.showingCve ? root.advisories : root.items
+    root.cursor = activeList.length ? 0 : -1
     root.controller.show()
     if (root.unseen) {
       root.seenAt = root.items[0].publishedAt
@@ -94,32 +96,18 @@ Panel {
   }
 
   function rebuild() {
-    root.items = Model.buildItems(root.feed, root.titlesByLang[root.lang], root.takeawaysByLang[root.lang], root.lang, root.count)
-    if (root.cursor >= root.items.length) root.cursor = root.items.length - 1
+    root.items = Model.buildItems(root.feed, root.count)
+    root.advisories = Model.buildAdvisories(root.securityData, root.count)
+    var activeList = root.showingCve ? root.advisories : root.items
+    if (root.cursor >= activeList.length) root.cursor = activeList.length - 1
   }
 
   function refresh() {
     root.loading = true
     if (!feedProc.running) feedProc.running = true
-    fetchTranslations(true)
+    if (!securityProc.running) securityProc.running = true
   }
 
-  // English needs nothing beyond the feed. Other languages load their titles
-  // and takeaways once per session, and again on each full refresh.
-  function fetchTranslations(force) {
-    var lang = root.lang
-    if (lang === "en") return
-    if (force || !root.titlesByLang[lang]) {
-      titlesProc.lang = lang
-      titlesProc.command = ["curl", "-fsS", "--compressed", "--max-time", "15", Model.titlesUrl(lang)]
-      titlesProc.running = true
-    }
-    if (force || !root.takeawaysByLang[lang]) {
-      takeawaysProc.lang = lang
-      takeawaysProc.command = ["curl", "-fsS", "--compressed", "--max-time", "15", Model.takeawaysUrl(lang)]
-      takeawaysProc.running = true
-    }
-  }
 
   function setLanguage(lang) {
     if (!Model.isLanguage(lang)) return
@@ -140,13 +128,15 @@ Panel {
   }
 
   function openItem(index) {
-    if (index >= 0 && index < root.items.length) root.openUrl(root.items[index].url)
+    var activeList = root.showingCve ? root.advisories : root.items
+    if (index >= 0 && index < activeList.length) root.openUrl(activeList[index].url)
   }
 
   function moveCursor(dy) {
-    if (!root.items.length) return
+    var activeList = root.showingCve ? root.advisories : root.items
+    if (!activeList.length) return
     var next = root.cursor < 0 ? 0 : root.cursor + dy
-    root.cursor = Math.max(0, Math.min(root.items.length - 1, next))
+    root.cursor = Math.max(0, Math.min(activeList.length - 1, next))
   }
 
   // Today's stories show their time; older ones their date, in the reading
@@ -159,11 +149,12 @@ Panel {
     return date.toLocaleDateString(Qt.locale(root.lang), "d MMM")
   }
 
-  onLangChanged: {
-    rebuild()
-    fetchTranslations(false)
-  }
+  onLangChanged: rebuild()
   onCountChanged: rebuild()
+  onShowingCveChanged: {
+    var activeList = root.showingCve ? root.advisories : root.items
+    root.cursor = activeList.length ? 0 : -1
+  }
 
   readonly property string statePath: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state"))
     + "/omarchy/settings/fosswire.json"
@@ -210,32 +201,14 @@ Panel {
   }
 
   Process {
-    id: titlesProc
-    property string lang: ""
+    id: securityProc
+    command: ["curl", "-fsS", "--compressed", "--max-time", "15", Model.securityUrl()]
     stdout: StdioCollector {
       waitForEnd: true
       onStreamFinished: {
         var parsed = Model.parseObject(text)
-        if (!parsed) return
-        var next = Object.assign({}, root.titlesByLang)
-        next[titlesProc.lang] = parsed
-        root.titlesByLang = next
-        root.rebuild()
-      }
-    }
-  }
-
-  Process {
-    id: takeawaysProc
-    property string lang: ""
-    stdout: StdioCollector {
-      waitForEnd: true
-      onStreamFinished: {
-        var parsed = Model.parseObject(text)
-        if (!parsed) return
-        var next = Object.assign({}, root.takeawaysByLang)
-        next[takeawaysProc.lang] = parsed
-        root.takeawaysByLang = next
+        if (!parsed || !Array.isArray(parsed.advisories)) return
+        root.securityData = parsed
         root.rebuild()
       }
     }
@@ -283,7 +256,8 @@ Panel {
       }
       onTextKey: function(text, modifiers) {
         if (text === "r") root.refresh()
-        else if (text === "o") root.openUrl(Model.homeUrl(root.lang))
+        else if (text === "o") root.openUrl(root.showingCve ? Model.securityPageUrl() : Model.homeUrl())
+        else if (text === "c") root.showingCve = !root.showingCve
         else if (text === "L") root.pickingLanguage = !root.pickingLanguage
         else if (text === "a") root.showingAbout = !root.showingAbout
       }
@@ -320,9 +294,7 @@ Panel {
           width: scroll.width
           spacing: Style.space(10)
 
-          // ---- Header: the site logo and name, then about, language, refresh.
-          // The three buttons share one size and are centred on the same line,
-          // so the language code sits level with the two glyphs.
+          // ---- Header: the site logo and name, then CVE Radar, about, language, refresh.
           Item {
             width: parent.width
             implicitHeight: Math.max(brand.implicitHeight, actions.implicitHeight)
@@ -358,6 +330,16 @@ Panel {
               anchors.right: parent.right
               anchors.verticalCenter: parent.verticalCenter
               spacing: Style.spacing.labelGap
+
+              PanelActionButton {
+                anchors.verticalCenter: parent.verticalCenter
+                size: parent.parent.buttonSize
+                iconText: "󰒃"
+                tooltipText: root.tr("cveRadar")
+                foreground: root.showingCve ? Commons.Color.accent : root.fg
+                fontFamily: root.fontFamily
+                onClicked: root.showingCve = !root.showingCve
+              }
 
               PanelActionButton {
                 anchors.verticalCenter: parent.verticalCenter
@@ -437,13 +419,13 @@ Panel {
           PanelSeparator { foreground: root.fg }
 
           PanelSectionHeader {
-            text: root.tr("latest").toUpperCase()
+            text: root.tr(root.showingCve ? "cveRadar" : "latest").toUpperCase()
             foreground: root.fg
             fontFamily: root.fontFamily
           }
 
           Text {
-            visible: root.loading && !root.items.length || root.failed
+            visible: !root.showingCve && (root.loading && !root.items.length || root.failed)
             width: parent.width
             textFormat: Text.PlainText
             wrapMode: Text.WordWrap
@@ -453,8 +435,87 @@ Panel {
             font.pixelSize: Style.font.bodySmall
           }
 
+          // ---- CVE Radar advisories.
+          Column {
+            visible: root.showingCve
+            width: parent.width
+            spacing: Style.space(2)
+
+            Repeater {
+              model: root.advisories
+
+              CursorSurface {
+                id: cveRow
+                required property var modelData
+                required property int index
+                readonly property bool selected: index === root.cursor
+
+                width: parent.width
+                implicitHeight: cveRowText.implicitHeight + Style.spacing.rowPaddingX
+                foreground: root.fg
+                hasCursor: selected
+
+                Column {
+                  id: cveRowText
+                  anchors.left: parent.left
+                  anchors.right: parent.right
+                  anchors.verticalCenter: parent.verticalCenter
+                  anchors.leftMargin: Style.spacing.rowPaddingX
+                  anchors.rightMargin: Style.spacing.rowPaddingX
+                  spacing: Style.space(3)
+
+                  Text {
+                    width: parent.width
+                    textFormat: Text.PlainText
+                    text: "[" + cveRow.modelData.severity + "] " + cveRow.modelData.cveId + " · " + cveRow.modelData.title
+                    color: cveRow.modelData.severity === "CRITICAL" ? Commons.Color.urgent : root.fg
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.body
+                    font.bold: cveRow.modelData.severity === "CRITICAL" || cveRow.index === 0
+                    wrapMode: Text.WordWrap
+                    maximumLineCount: 2
+                    elide: Text.ElideRight
+                  }
+
+                  Text {
+                    visible: cveRow.selected && cveRow.modelData.summary !== ""
+                    width: parent.width
+                    textFormat: Text.PlainText
+                    text: cveRow.modelData.summary
+                    color: root.fg
+                    opacity: 0.85
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.bodySmall
+                    wrapMode: Text.WordWrap
+                    maximumLineCount: 3
+                    elide: Text.ElideRight
+                  }
+
+                  Text {
+                    width: parent.width
+                    textFormat: Text.PlainText
+                    text: [cveRow.modelData.product, root.formatWhen(cveRow.modelData.publishedAt)].filter(Boolean).join("  ·  ")
+                    color: root.dim
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.caption
+                    elide: Text.ElideRight
+                  }
+                }
+
+                MouseArea {
+                  anchors.fill: parent
+                  hoverEnabled: true
+                  cursorShape: Qt.PointingHandCursor
+                  onEntered: root.cursor = cveRow.index
+                  onClicked: root.openItem(cveRow.index)
+                }
+              }
+            }
+          }
+
           // ---- Headlines. The highlighted one also shows its takeaway.
           Column {
+            visible: !root.showingCve
             width: parent.width
             spacing: Style.space(2)
 
@@ -551,7 +612,7 @@ Panel {
               anchors.leftMargin: Style.spacing.rowPaddingX
               anchors.verticalCenter: parent.verticalCenter
               textFormat: Text.PlainText
-              text: "󰖟  " + root.tr("openSite")
+              text: "󰖟  " + (root.showingCve ? root.tr("cveRadar") : root.tr("openSite"))
               color: root.fg
               font.family: root.fontFamily
               font.pixelSize: Style.font.bodySmall
@@ -562,7 +623,7 @@ Panel {
               anchors.fill: parent
               hoverEnabled: true
               cursorShape: Qt.PointingHandCursor
-              onClicked: root.openUrl(Model.homeUrl(root.lang))
+              onClicked: root.openUrl(root.showingCve ? Model.securityPageUrl() : Model.homeUrl())
             }
           }
         }

@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "id": "org.fosswire.news",
   "name": "FOSSWire",
-  "version": "1.3.2",
+  "version": "1.4.0",
   "author": "Ozan Özdil (ozdil)",
   "license": "MIT",
-  "description": "Latest open source and open hardware news from fosswire.org in the top bar, in all 17 site languages.",
+  "description": "Latest open source and open hardware news from fosswire.org in the top bar, with the interface in 17 languages.",
   "kinds": ["bar-widget"],
   "entryPoints": { "barWidget": "BarWidget.qml" },
   "barWidget": {
@@ -23,7 +23,7 @@
       "refreshMinutes": 30
     },
     "schema": [
-      { "key": "language", "type": "string", "label": "Language (auto follows the PC language, or a site language code)" }
+      { "key": "language", "type": "string", "label": "Interface language (auto follows the PC language, or a language code)" }
     ]
   }
 }

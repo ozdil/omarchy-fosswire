@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.4.0 (2026-10-27)
+
+- fosswire.org is English only since 2026-10-26: the news is shown in English and links open
+  the plain article pages. The panel's own labels keep their 17 languages.
+- CVE Radar view (`c`): the latest advisories by severity, from `/api/v1/security.json`.
+- The plugin no longer asks for the translation files the site stopped publishing.
+
 ## 1.3.2 (2026-10-16)
 
 - The panel header shows the fosswire.org logo as the site draws it (white F on the blue tile).
