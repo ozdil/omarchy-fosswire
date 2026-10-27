@@ -86,7 +86,7 @@ BarWidget {
 
     onPressed: function(b) {
       if (b === Qt.MiddleButton) root.refresh()
-      else if (b === Qt.RightButton) Quickshell.execDetached(["xdg-open", Model.homeUrl(root.lang)])
+      else if (b === Qt.RightButton) Quickshell.execDetached(["xdg-open", Model.homeUrl()])
       else root.toggle()
     }
   }

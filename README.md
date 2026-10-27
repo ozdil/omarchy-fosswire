@@ -13,10 +13,11 @@ Nerd Font unless you changed it with `omarchy font set`. Switching themes recolo
   key takeaway. Enter or click opens the article in your browser.
 - **About:** the 󰋽 button (or `a`) shows the version, developer and license straight from
   `manifest.json`, with links to the source code, GitHub Sponsors and Buy Me a Coffee.
-- **All 17 site languages:** English, Türkçe, Deutsch, Español, Français, Italiano, Português,
+- **Interface in 17 languages:** English, Türkçe, Deutsch, Español, Français, Italiano, Português,
   Русский, 日本語, 中文, 한국어, العربية (right to left), Nederlands, Polski, Svenska,
   Українська and हिन्दी. It picks the PC's language by itself (from `LANGUAGE`, `LC_ALL`, `LC_MESSAGES` or
-  `LANG`, so `de_DE.UTF-8` gives German) and falls back to English for any other language. Articles open on the site in the same language.
+  `LANG`, so `de_DE.UTF-8` gives German) and falls back to English for any other language. The news itself is in English, as on the site
+  (fosswire.org is English only since 2026-10-26).
 
 ## Install
 
@@ -47,6 +48,7 @@ saved language and last-seen story in `~/.local/state/omarchy/settings/fosswire.
 | Enter | Open the highlighted article |
 | `r` | Refresh |
 | `o` | Open fosswire.org |
+| `c` | Switch between the news and CVE Radar |
 | `L` | Pick the language (Left / Right to change, Enter to close) |
 | `a` | About: version, license and support links |
 | Esc | Close |
@@ -64,7 +66,7 @@ for example `{ "id": "org.fosswire.news", "showHeadline": false }`:
 
 | Key | Default | Meaning |
 |-----|---------|---------|
-| `language` | `auto` | A site language code, or `auto` for the PC's language |
+| `language` | `auto` | An interface language code, or `auto` for the PC's language |
 | `icon` | `logo` | `logo` for the fosswire.org mark, or any short text or Nerd Font glyph such as `󰮮` |
 | `showHeadline` | `false` | Also write the newest headline on the bar (never on a vertical bar) |
 | `maxChars` | `42` | Longest headline shown on the bar |
@@ -79,10 +81,8 @@ and wins over the `language` setting. The same file remembers the newest story y
 The plugin reads the site's public JSON API with `curl`; there is no account and nothing is
 sent besides the requests themselves:
 
-- `https://fosswire.org/api/v1/feed.json`: the newest articles (English)
-- `https://fosswire.org/api/v1/titles/<lang>.json` and `takeaways/<lang>.json`: translations
-
-A title the site has not translated yet is shown in English, as on the site.
+- `https://fosswire.org/api/v1/feed.json`: the newest articles
+- `https://fosswire.org/api/v1/security.json`: CVE Radar advisories
 
 ## Develop
 

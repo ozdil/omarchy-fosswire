@@ -61,24 +61,14 @@ function feedUrl() {
   return SITE + "/api/v1/feed.json"
 }
 
-// Translated titles and takeaways keyed by slug. English has none: the feed
-// itself is English.
-function titlesUrl(lang) {
-  return SITE + "/api/v1/titles/" + encodeURIComponent(lang) + ".json"
+// The site is English only since 2026-10-26: the news is shown in English
+// whatever the panel's interface language is.
+function articleUrl(slug) {
+  return SITE + "/news/" + encodeURIComponent(slug)
 }
 
-function takeawaysUrl(lang) {
-  return SITE + "/api/v1/takeaways/" + encodeURIComponent(lang) + ".json"
-}
-
-// The ?lang= parameter makes the page open in the plugin's language even
-// when the browser last read the site in another one.
-function articleUrl(slug, lang) {
-  return SITE + "/news/" + encodeURIComponent(slug) + ".html?lang=" + encodeURIComponent(lang || "en")
-}
-
-function homeUrl(lang) {
-  return SITE + "/?lang=" + encodeURIComponent(lang || "en")
+function homeUrl() {
+  return SITE + "/"
 }
 
 function decodeEntities(text) {
@@ -103,14 +93,9 @@ function parseObject(raw) {
   }
 }
 
-// The newest `limit` articles of feed.json, in `lang`. A title the site has
-// not translated yet stays English, as it does on the site; a missing
-// translated takeaway is left out rather than shown in English.
-function buildItems(feed, titles, takeaways, lang, limit) {
+// The newest `limit` articles of feed.json.
+function buildItems(feed, limit) {
   var articles = feed && Array.isArray(feed.articles) ? feed.articles.slice() : []
-  var english = lang === "en"
-  titles = titles || {}
-  takeaways = takeaways || {}
 
   articles.sort(function(a, b) {
     return (Date.parse(b.published_at || "") || 0) - (Date.parse(a.published_at || "") || 0)
@@ -120,15 +105,13 @@ function buildItems(feed, titles, takeaways, lang, limit) {
   for (var i = 0; i < articles.length && out.length < (limit || 12); i++) {
     var art = articles[i]
     if (!art || !art.slug) continue
-    var title = english ? art.title : (titles[art.slug] || art.title)
-    var takeaway = english ? art.takeaway : takeaways[art.slug]
     out.push({
       slug: String(art.slug),
-      title: decodeEntities(title),
-      takeaway: decodeEntities(takeaway || ""),
+      title: decodeEntities(art.title),
+      takeaway: decodeEntities(art.takeaway || ""),
       source: decodeEntities(art.source || ""),
       publishedAt: String(art.published_at || ""),
-      url: articleUrl(art.slug, lang)
+      url: articleUrl(art.slug)
     })
   }
   return out
@@ -164,6 +147,43 @@ function serializeState(lang, seenAt) {
   return JSON.stringify({ language: isLanguage(lang) ? lang : "", seenAt: String(seenAt || "") }) + "\n"
 }
 
+function securityUrl() {
+  return SITE + "/api/v1/security.json"
+}
+
+function securityPageUrl() {
+  return SITE + "/security"
+}
+
+function buildAdvisories(sec, limit) {
+  var list = sec && Array.isArray(sec.advisories) ? sec.advisories.slice() : []
+  var sevRank = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1 }
+
+  list.sort(function(a, b) {
+    var sa = sevRank[String(a && a.severity || "").toUpperCase()] || 0
+    var sb = sevRank[String(b && b.severity || "").toUpperCase()] || 0
+    if (sb !== sa) return sb - sa
+    return (Date.parse(b && b.published_at || "") || 0) - (Date.parse(a && a.published_at || "") || 0)
+  })
+
+  var out = []
+  for (var i = 0; i < list.length && out.length < (limit || 10); i++) {
+    var adv = list[i]
+    if (!adv || !adv.slug) continue
+    out.push({
+      cveId: String(adv.cve_id || (Array.isArray(adv.advisory_ids) && adv.advisory_ids[0]) || "ADVISORY"),
+      severity: String(adv.severity || "UNRATED").toUpperCase(),
+      cvss: typeof adv.cvss === "number" ? adv.cvss : null,
+      product: decodeEntities(adv.product || ""),
+      title: decodeEntities(adv.title || ""),
+      summary: decodeEntities(adv.mitigation || adv.summary || ""),
+      publishedAt: String(adv.published_at || ""),
+      url: articleUrl(adv.slug)
+    })
+  }
+  return out
+}
+
 // True when the newest story came out after the one last seen in the panel.
 // Nothing seen yet counts as new, so a fresh install draws attention once.
 function hasUnseen(items, seenAt) {
@@ -171,3 +191,4 @@ function hasUnseen(items, seenAt) {
   var newest = Date.parse(items[0].publishedAt || "") || 0
   return newest > (Date.parse(seenAt || "") || 0)
 }
+
