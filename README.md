@@ -48,6 +48,7 @@ saved language and last-seen story in `~/.local/state/omarchy/settings/fosswire.
 | Enter | Open the highlighted article |
 | `r` | Refresh |
 | `o` | Open fosswire.org |
+| `c` | Switch between the news and CVE Radar |
 | `L` | Pick the language (Left / Right to change, Enter to close) |
 | `a` | About: version, license and support links |
 | Esc | Close |
@@ -65,7 +66,7 @@ for example `{ "id": "org.fosswire.news", "showHeadline": false }`:
 
 | Key | Default | Meaning |
 |-----|---------|---------|
-| `language` | `auto` | A site language code, or `auto` for the PC's language |
+| `language` | `auto` | An interface language code, or `auto` for the PC's language |
 | `icon` | `logo` | `logo` for the fosswire.org mark, or any short text or Nerd Font glyph such as `󰮮` |
 | `showHeadline` | `false` | Also write the newest headline on the bar (never on a vertical bar) |
 | `maxChars` | `42` | Longest headline shown on the bar |
